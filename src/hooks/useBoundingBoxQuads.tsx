@@ -27,7 +27,7 @@ export function useBoundingBoxQuads(entity: Entity) {
 
         setFront([leftTopFront, rightTopFront, rightBottomFront, leftBottomFront]);
 
-        setBack([leftTopBack, rightTopBack, rightBottomBack, leftBottomBack]);
+        setBack([rightTopBack, leftTopBack, leftBottomBack, rightBottomBack]);
 
         setTop([leftTopFront, rightTopFront, rightTopBack, leftTopBack]);
 

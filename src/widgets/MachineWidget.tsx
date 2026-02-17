@@ -1,59 +1,10 @@
-import type { Entity, Vec3 } from "@3dverse/livelink";
-import { DOM3DElement, ViewportContext } from "@3dverse/livelink-react";
-import { useContext, useEffect, useState } from "react";
-import { QuadLayout, type Point, type QuadPoint } from "../components/QuadLayout";
-import { useBoundingBoxQuads } from "../hooks/useBoundingBoxQuads";
+import type { Entity } from "@3dverse/livelink";
+import { useEffect, useState } from "react";
+import { QuadLayout } from "../components/QuadLayout";
 import { useSelection } from "../contexts/SelectionContext";
 
-type QuadData = {
-    quad: QuadPoint;
-    dimensions: { width: number; height: number };
-};
-
 export function MachineWidget({ entity }: { entity: Entity }) {
-    const { viewport } = useContext(ViewportContext);
-    const { selectedElement, setSelectedElement } = useSelection();
-
-    const { bottom, right: back } = useBoundingBoxQuads(entity);
-    const [bottomQuad, setBottomQuad] = useState<QuadData | null>(null);
-    const [backQuad, setBackQuad] = useState<QuadData | null>(null);
-
-    const [refreshToken, setRefreshToken] = useState<number>(0);
-    const scale = 100;
-
-    useEffect(() => {
-        if (!viewport || !viewport.camera_projection || !bottom || !back) return;
-
-        const projectedBottom = bottom.map((p: Vec3) => {
-            const [x, y] = viewport.projectWorldToScreen({
-                world_position: p,
-            });
-            return { x, y } as Point;
-        }) as QuadPoint;
-
-        setBottomQuad({
-            quad: projectedBottom as QuadPoint,
-            dimensions: {
-                width: (bottom[1][0] - bottom[0][0]) * scale,
-                height: (bottom[3][2] - bottom[0][2]) * scale,
-            },
-        });
-
-        const projectedBack = back.map((p: Vec3) => {
-            const [x, y] = viewport.projectWorldToScreen({
-                world_position: p,
-            });
-            return { x, y } as Point;
-        }) as QuadPoint;
-
-        setBackQuad({
-            quad: projectedBack,
-            dimensions: {
-                width: (back[1][2] - back[0][2]) * scale,
-                height: (back[0][1] - back[3][1]) * scale,
-            },
-        });
-    }, [viewport, bottom, back, refreshToken]);
+    const { selectedElement, setSelectedElement, debug } = useSelection();
 
     const [displayInfo, setDisplayInfo] = useState(false);
     useEffect(() => {
@@ -67,47 +18,29 @@ export function MachineWidget({ entity }: { entity: Entity }) {
     }, [selectedElement, entity]);
 
     return (
-        <div>
-            <DOM3DElement
-                worldPosition={[0, 0, 0]}
-                onProjectionChange={() => {
-                    setRefreshToken((t) => t + 1);
-                }}
-            >
-                <span />
-            </DOM3DElement>
-
-            {(bottomQuad || backQuad) && (
-                <div className="pointer-events-auto">
-                    {bottomQuad && (
-                        <QuadLayout
-                            //onMouseEnter={() => setDisplayInfo(true)}
-                            //onMouseLeave={() => setDisplayInfo(false)}
-                            quad={bottomQuad.quad}
-                            baseW={bottomQuad.dimensions.width}
-                            baseH={bottomQuad.dimensions.height}
-                            center={
-                                displayInfo ? (
-                                    <div className="cursor-pointer h-full border-b-10 border-l-10 border-[#524DC9]" />
-                                ) : (
-                                    <div
-                                        className="cursor-pointer h-full hover:border-b-2 hover:border-l-2 border-b-fuchsia-600"
-                                        onClick={() => setSelectedElement("Machine")}
-                                    />
-                                )
-                            }
+        <div className="pointer-events-auto">
+            <QuadLayout
+                entity={entity}
+                face="bottom"
+                center={
+                    displayInfo ? (
+                        <div className="cursor-pointer h-full border-b-10 border-l-10 border-[#524DC9]" />
+                    ) : (
+                        <div
+                            className="cursor-pointer h-full hover:border-b-2 hover:border-l    -2 border-b-fuchsia-600"
+                            onClick={() => setSelectedElement("Machine")}
                         />
-                    )}
-
-                    {backQuad && (
-                        <QuadLayout
-                            quad={backQuad.quad}
-                            baseW={backQuad.dimensions.width}
-                            baseH={backQuad.dimensions.height}
-                            center={displayInfo && <ProductionAreaHeader entity={entity} />}
-                        />
-                    )}
-                </div>
+                    )
+                }
+            />
+            {displayInfo && (
+                <QuadLayout
+                    entity={entity}
+                    face="right"
+                    invert
+                    debug={debug}
+                    right={<ProductionAreaHeader entity={entity} />}
+                />
             )}
         </div>
     );

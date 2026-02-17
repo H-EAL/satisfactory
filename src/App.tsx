@@ -1,5 +1,5 @@
 //------------------------------------------------------------------------------
-import { useContext, useEffect, useRef, useState } from "react";
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from "react";
 import {
     CameraController as CC,
     CameraControllerPresets,
@@ -45,7 +45,7 @@ function AppLayout() {
     const { isConnecting } = useContext(LivelinkContext);
     const cameraControllerRef = useRef<CC | null>(null);
 
-    function moveCamera(entity: Entity) {
+    const moveCamera = useCallback((entity: Entity) => {
         const labelComponent = entity.label;
         if (!labelComponent) {
             console.warn(`Entity ${entity.debug_name?.value} is not a label`);
@@ -69,7 +69,9 @@ function AppLayout() {
 
         // Move the camera to the position and look at the target
         cameraController.setLookAt(...position, ...target, true);
-    }
+    }, []);
+
+    const showMinimap = false;
 
     return (
         <>
@@ -90,7 +92,7 @@ function AppLayout() {
                     </DOM3DOverlay>
                 </Viewport>
                 <Labels moveCamera={moveCamera} />
-                <Minimap />
+                {showMinimap && <Minimap />}
             </Canvas>
         </>
     );
@@ -134,25 +136,29 @@ function Minimap() {
 function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
     const { entities } = useEntities({ mandatory_components: ["label"] }, ["label"]);
 
-    const { selectedElement, setSelectedElement } = useSelection();
-    const [breadcrumb, setBreadcrumb] = useState<string[]>([]);
-
-    useEffect(() => {
-        const current = [];
+    const { selectedElement, setSelectedElement, debug, setDebug } = useSelection();
+    const breadcrumb = useMemo(() => {
+        const current: string[] = [];
         switch (selectedElement) {
             case "Machine":
                 current.push("machine");
+            // eslint-disable-next-line no-fallthrough
             case "Cell":
                 current.push("cell");
+            // eslint-disable-next-line no-fallthrough
             case "Line":
                 current.push("line");
+            // eslint-disable-next-line no-fallthrough
             case "Area":
                 current.push("area");
+            // eslint-disable-next-line no-fallthrough
             case "Factory":
                 current.push("factory");
         }
-        setBreadcrumb(current.reverse());
+        return current.reverse();
+    }, [selectedElement]);
 
+    useEffect(() => {
         if (entities.length === 0) return;
         moveCamera(entities.find((e) => e.name === selectedElement) ?? entities[0]);
     }, [selectedElement, entities, moveCamera]);
@@ -168,6 +174,21 @@ function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
     return (
         <>
             <div className="absolute left-0 top-0 flex gap-4 p-2">
+                <input
+                    type="checkbox"
+                    id="debug"
+                    className="peer hidden"
+                    checked={debug}
+                    onChange={(e) => setDebug(e.target.checked)}
+                />
+                <label
+                    htmlFor="debug"
+                    className={`px-3 py-1 rounded-lg cursor-pointer text-sm ${
+                        debug ? "bg-gray-600 text-white" : "bg-gray-300"
+                    }`}
+                >
+                    Debug
+                </label>
                 {entities
                     .sort((a, b) => v[a.name as keyof typeof v] - v[b.name as keyof typeof v])
                     .map((entity) => (

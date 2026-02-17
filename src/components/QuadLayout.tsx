@@ -1,14 +1,22 @@
-import type { HTMLAttributes } from "react";
+import { useCallback, useContext, useMemo, useState, type HTMLAttributes } from "react";
+import type { Entity } from "@3dverse/livelink";
+import { useBoundingBoxQuads } from "../hooks/useBoundingBoxQuads";
+import { DOM3DElement, ViewportContext } from "@3dverse/livelink-react";
 
 export type Point = { x: number; y: number };
 export type QuadPoint = [Point, Point, Point, Point];
 
+type QuadData = {
+    quad: QuadPoint;
+    dimensions: { width: number; height: number };
+};
+
 export function QuadLayout({
-    quad,
-    baseW,
-    baseH,
+    entity,
+    face,
     outskirt = 100,
     debug,
+    invert,
     center,
     top,
     right,
@@ -16,78 +24,120 @@ export function QuadLayout({
     left,
     ...divProps
 }: {
-    quad: QuadPoint | null;
-    baseW: number;
-    baseH: number;
+    entity: Entity;
+    face: "front" | "back" | "left" | "right" | "top" | "bottom";
     outskirt?: number;
     debug?: boolean;
+    invert?: boolean;
     center?: React.ReactNode;
     top?: React.ReactNode;
     right?: React.ReactNode;
     bottom?: React.ReactNode;
     left?: React.ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
-    if (!quad) return null;
+    const faces = useBoundingBoxQuads(entity);
+    const { viewport } = useContext(ViewportContext);
+    const [, setProjectionTick] = useState(0);
+    const handleProjectionChange = useCallback(() => {
+        setProjectionTick((tick) => tick + 1);
+    }, []);
+    const faceQuad = faces[face];
+    const dimensions = useMemo(() => {
+        if (!faceQuad) return null;
 
-    if (!(center || top || right || bottom || left)) return null;
+        const scale = 100;
+        const wDim = face === "left" || face === "right" ? 2 : 0;
+        const hDim = face === "top" || face === "bottom" ? 2 : 1;
+
+        return {
+            width: Math.abs(faceQuad[1][wDim] - faceQuad[0][wDim]) * scale,
+            height: Math.abs(faceQuad[3][hDim] - faceQuad[0][hDim]) * scale,
+        };
+    }, [faceQuad, face]);
+
+    function doInvert(quad: QuadPoint): QuadPoint {
+        return invert ? [quad[1], quad[0], quad[3], quad[2]] : quad;
+    }
+
+    const projectedQuad =
+        viewport && viewport.camera_projection && faceQuad
+            ? doInvert(
+                  faceQuad.map((p) => {
+                      const [x, y] = viewport.projectWorldToScreen({
+                          world_position: p,
+                      });
+                      return { x, y } as Point;
+                  }) as QuadPoint,
+              )
+            : null;
+
+    if (!projectedQuad || !dimensions) return null;
+
+    const baseW = dimensions.width;
+    const baseH = dimensions.height;
 
     return (
-        <div
-            className="absolute left-0 top-0 origin-top-left w-full h-full pointer-events-auto text-4xl"
-            style={{
-                width: baseW,
-                height: baseH,
-                transform: quadToMatrix3d(quad, baseW, baseH),
-            }}
-            {...divProps}
-        >
-            {(center || debug) && (
-                <div className="absolute left-0 top-0 w-full h-full">
-                    {debug && <DebugQuadrant quadrant="center" />}
-                    {center}
-                </div>
-            )}
+        <>
+            <DOM3DElement worldPosition={[0, 0, 0]} onProjectionChange={handleProjectionChange}>
+                <span />
+            </DOM3DElement>
+            <div
+                className="absolute left-0 top-0 origin-top-left w-full h-full pointer-events-auto text-4xl"
+                style={{
+                    width: dimensions.width,
+                    height: dimensions.height,
+                    transform: quadToMatrix3d({ quad: projectedQuad, dimensions }),
+                }}
+                {...divProps}
+            >
+                {(center || debug) && (
+                    <div className="absolute left-0 top-0 w-full h-full">
+                        {debug && <DebugQuadrant quadrant="center" />}
+                        {center}
+                    </div>
+                )}
 
-            {(left || debug) && (
-                <div
-                    className="absolute"
-                    style={{ left: -outskirt, top: 0, width: outskirt, height: baseH }}
-                >
-                    {debug && <DebugQuadrant quadrant="left" />}
-                    {left}
-                </div>
-            )}
+                {(left || debug) && (
+                    <div
+                        className="absolute"
+                        style={{ left: -outskirt, top: 0, width: outskirt, height: baseH }}
+                    >
+                        {debug && <DebugQuadrant quadrant="left" />}
+                        {left}
+                    </div>
+                )}
 
-            {(top || debug) && (
-                <div
-                    className="absolute"
-                    style={{ left: 0, top: -outskirt, width: baseW, height: outskirt }}
-                >
-                    {debug && <DebugQuadrant quadrant="top" />}
-                    {top}
-                </div>
-            )}
+                {(top || debug) && (
+                    <div
+                        className="absolute"
+                        style={{ left: 0, top: -outskirt, width: baseW, height: outskirt }}
+                    >
+                        {debug && <DebugQuadrant quadrant="top" />}
+                        {top}
+                    </div>
+                )}
 
-            {(right || debug) && (
-                <div
-                    className="absolute"
-                    style={{ left: baseW, top: 0, width: outskirt, height: baseH }}
-                >
-                    {debug && <DebugQuadrant quadrant="right" />}
-                    {right}
-                </div>
-            )}
+                {(right || debug) && (
+                    <div
+                        className="absolute"
+                        style={{ left: baseW, top: 0, width: outskirt, height: baseH }}
+                    >
+                        {debug && <DebugQuadrant quadrant="right" />}
+                        {right}
+                    </div>
+                )}
 
-            {(bottom || debug) && (
-                <div
-                    className="absolute"
-                    style={{ left: 0, top: baseH, width: baseW, height: outskirt }}
-                >
-                    {debug && <DebugQuadrant quadrant="bottom" />}
-                    {bottom}
-                </div>
-            )}
-        </div>
+                {(bottom || debug) && (
+                    <div
+                        className="absolute"
+                        style={{ left: 0, top: baseH, width: baseW, height: outskirt }}
+                    >
+                        {debug && <DebugQuadrant quadrant="bottom" />}
+                        {bottom}
+                    </div>
+                )}
+            </div>
+        </>
     );
 }
 
@@ -113,7 +163,8 @@ function DebugQuadrant({ quadrant }: { quadrant: "center" | "top" | "right" | "b
  * Maps a rectangle [0..w, 0..h] to an arbitrary screen quad (tl,tr,br,bl)
  * and returns a CSS matrix3d(...) string.
  */
-function quadToMatrix3d(quad: [Point, Point, Point, Point], w: number, h: number): string {
+function quadToMatrix3d({ quad, dimensions }: QuadData): string {
+    const { width: w, height: h } = dimensions;
     const src: [Point, Point, Point, Point] = [
         { x: 0, y: 0 },
         { x: w, y: 0 },
@@ -157,6 +208,7 @@ function solveLinearSystem(A: number[][], b: number[]): number[] {
         }
         if (Math.abs(M[pivot][col]) < 1e-12) {
             // new Error("Singular matrix: quad is degenerate");
+            //console.error("Singular matrix: quad is degenerate");
             return [];
         }
         [M[col], M[pivot]] = [M[pivot], M[col]];
