@@ -5,9 +5,33 @@ import { ProductionAreaWidget } from "./widgets/ProductionAreaWidget";
 import { ProductionLineWidget } from "./widgets/ProductionLineWidget";
 import { ProductionCellWidget } from "./widgets/ProductionCellWidget";
 import { MachineWidget } from "./widgets/MachineWidget";
+import { FactoryWidget } from "./widgets/FactoryWidget";
 
 //------------------------------------------------------------------------------
-export function Factory() {
+export function FactoryBuilder() {
+    const { entities } = useEntities({ mandatory_components: ["scene_ref"] });
+
+    const [factories, setFactories] = useState<Entity[]>([]);
+
+    useEffect(() => {
+        setFactories(
+            entities
+                .filter((e) => e.name.toLowerCase().startsWith("factory:"))
+                .sort((a, b) => a.name.localeCompare(b.name)),
+        );
+    }, [entities]);
+
+    return (
+        <>
+            {factories.map((factory) => (
+                <Factory key={factory.euid.value} entity={factory} />
+            ))}
+        </>
+    );
+}
+
+//------------------------------------------------------------------------------
+function Factory({ entity }: { entity: Entity }) {
     const { entities } = useEntities({ mandatory_components: ["scene_ref"] });
 
     const [areas, setAreas] = useState<Entity[]>([]);
@@ -20,7 +44,15 @@ export function Factory() {
         );
     }, [entities]);
 
-    return areas.map((area) => <ProductionArea key={area.euid.value} entity={area} />);
+    return (
+        <>
+            <FactoryWidget entity={entity} />
+
+            {areas.map((area) => (
+                <ProductionArea key={area.euid.value} entity={area} />
+            ))}
+        </>
+    );
 }
 
 //------------------------------------------------------------------------------

@@ -15,6 +15,7 @@ export function QuadLayout({
     entity,
     face,
     outskirt = 100,
+    scale = 100,
     debug,
     invert,
     center,
@@ -27,6 +28,7 @@ export function QuadLayout({
     entity: Entity;
     face: "front" | "back" | "left" | "right" | "top" | "bottom";
     outskirt?: number;
+    scale?: number;
     debug?: boolean;
     invert?: boolean;
     center?: React.ReactNode;
@@ -45,7 +47,6 @@ export function QuadLayout({
     const dimensions = useMemo(() => {
         if (!faceQuad) return null;
 
-        const scale = 100;
         const wDim = face === "left" || face === "right" ? 2 : 0;
         const hDim = face === "top" || face === "bottom" ? 2 : 1;
 
@@ -53,7 +54,7 @@ export function QuadLayout({
             width: Math.abs(faceQuad[1][wDim] - faceQuad[0][wDim]) * scale,
             height: Math.abs(faceQuad[3][hDim] - faceQuad[0][hDim]) * scale,
         };
-    }, [faceQuad, face]);
+    }, [faceQuad, face, scale]);
 
     function doInvert(quad: QuadPoint): QuadPoint {
         return invert ? [quad[1], quad[0], quad[3], quad[2]] : quad;

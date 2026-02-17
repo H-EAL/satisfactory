@@ -18,14 +18,14 @@ import {
     useEntities,
 } from "@3dverse/livelink-react";
 import { LoadingOverlay } from "@3dverse/livelink-react-ui";
-import { Factory } from "./Factory";
+import { FactoryBuilder } from "./Factory";
 
 //------------------------------------------------------------------------------
 import "./App.css";
 import { SelectionProvider, useSelection } from "./contexts/SelectionContext";
 
 //------------------------------------------------------------------------------
-const scene_id = "4c29980d-87e7-424a-97af-945fcb15def5";
+const scene_id = "a4213021-3fee-4348-9c6d-8ebf8cd84842";
 const token = "public_OJTstp3bLFmUw0OS";
 
 //------------------------------------------------------------------------------
@@ -88,7 +88,7 @@ function AppLayout() {
                     />
 
                     <DOM3DOverlay>
-                        <Factory />
+                        <FactoryBuilder />
                     </DOM3DOverlay>
                 </Viewport>
                 <Labels moveCamera={moveCamera} />

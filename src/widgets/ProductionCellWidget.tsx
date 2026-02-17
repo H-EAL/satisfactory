@@ -23,7 +23,7 @@ export function ProductionCellWidget({ entity }: { entity: Entity }) {
                 face="bottom"
                 center={
                     displayInfo ? (
-                        <div className="cursor-pointer h-full border-10 border-[#524DC9]" />
+                        <div className="cursor-pointer h-full border-4 border-[#524DC9] border-t-[#524DC9]/40 border-r-[#524DC9]/40 border-dashed" />
                     ) : (
                         <div
                             className="cursor-pointer w-full h-full hover:border-blue-700 hover:border-20"
