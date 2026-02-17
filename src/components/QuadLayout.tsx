@@ -1,15 +1,38 @@
 import { useCallback, useContext, useMemo, useState, type HTMLAttributes } from "react";
-import type { Entity } from "@3dverse/livelink";
-import { useBoundingBoxQuads } from "../hooks/useBoundingBoxQuads";
+import type { Entity, Vec3 } from "@3dverse/livelink";
 import { DOM3DElement, ViewportContext } from "@3dverse/livelink-react";
 
-export type Point = { x: number; y: number };
-export type QuadPoint = [Point, Point, Point, Point];
-
+type Point = { x: number; y: number };
+type QuadPoint = [Point, Point, Point, Point];
 type QuadData = {
     quad: QuadPoint;
     dimensions: { width: number; height: number };
 };
+type Quad = [Vec3, Vec3, Vec3, Vec3]; // tl, tr, br, bl
+
+function computeBoundingBoxQuads(entity: Entity) {
+    const min = entity.global_aabb.min;
+    const max = entity.global_aabb.max;
+
+    const leftBottomBack: Vec3 = [min[0], min[1], min[2]];
+    const leftBottomFront: Vec3 = [min[0], min[1], max[2]];
+    const rightBottomBack: Vec3 = [max[0], min[1], min[2]];
+    const rightBottomFront: Vec3 = [max[0], min[1], max[2]];
+
+    const leftTopBack: Vec3 = [min[0], max[1], min[2]];
+    const leftTopFront: Vec3 = [min[0], max[1], max[2]];
+    const rightTopBack: Vec3 = [max[0], max[1], min[2]];
+    const rightTopFront: Vec3 = [max[0], max[1], max[2]];
+
+    const front: Quad = [leftTopFront, rightTopFront, rightBottomFront, leftBottomFront];
+    const back: Quad = [rightTopBack, leftTopBack, leftBottomBack, rightBottomBack];
+    const top: Quad = [rightTopBack, leftTopBack, leftTopFront, rightTopFront];
+    const bottom: Quad = [leftBottomBack, rightBottomBack, rightBottomFront, leftBottomFront];
+    const left: Quad = [leftTopBack, leftTopFront, leftBottomFront, leftBottomBack];
+    const right: Quad = [rightTopFront, rightTopBack, rightBottomBack, rightBottomFront];
+
+    return { front, back, top, bottom, left, right };
+}
 
 export function QuadLayout({
     entity,
@@ -37,7 +60,7 @@ export function QuadLayout({
     bottom?: React.ReactNode;
     left?: React.ReactNode;
 } & HTMLAttributes<HTMLDivElement>) {
-    const faces = useBoundingBoxQuads(entity);
+    const faces = computeBoundingBoxQuads(entity);
     const { viewport } = useContext(ViewportContext);
     const [, setProjectionTick] = useState(0);
     const handleProjectionChange = useCallback(() => {
@@ -100,7 +123,7 @@ export function QuadLayout({
 
                 {(left || debug) && (
                     <div
-                        className="absolute"
+                        className="absolute flex justify-end"
                         style={{ left: -outskirt, top: 0, width: outskirt, height: baseH }}
                     >
                         {debug && <DebugQuadrant quadrant="left" />}
@@ -110,7 +133,7 @@ export function QuadLayout({
 
                 {(top || debug) && (
                     <div
-                        className="absolute"
+                        className="absolute flex justify-end items-end"
                         style={{ left: 0, top: -outskirt, width: baseW, height: outskirt }}
                     >
                         {debug && <DebugQuadrant quadrant="top" />}

@@ -1,17 +1,19 @@
 import type { Entity } from "@3dverse/livelink";
-import { useEffect, useState } from "react";
 import { QuadLayout } from "../components/QuadLayout";
 import { useSelection } from "../contexts/SelectionContext";
 
-export function ProductionAreaWidget({ entity }: { entity: Entity }) {
+export function ProductionAreaWidget({
+    entity,
+    enableHover = false,
+}: {
+    entity: Entity;
+    enableHover?: boolean;
+}) {
     const { selectedElement, setSelectedElement, debug } = useSelection();
 
-    const [displayInfo, setDisplayInfo] = useState(false);
-    useEffect(() => {
-        setDisplayInfo(selectedElement === "Area" && entity.name === "area:a6");
-    }, [selectedElement, entity]);
+    const displayInfo = selectedElement === "area" && entity.name === "area:a6";
 
-    if (!displayInfo) return null;
+    if (!enableHover && !displayInfo) return null;
 
     return (
         <div className="pointer-events-auto">
@@ -24,7 +26,7 @@ export function ProductionAreaWidget({ entity }: { entity: Entity }) {
                     ) : (
                         <div
                             className="cursor-pointer w-full h-full hover:border-green-700 hover:border-20"
-                            onClick={() => setSelectedElement("Area")}
+                            onClick={() => setSelectedElement("area")}
                         />
                     )
                 }
@@ -47,7 +49,7 @@ export function ProductionAreaWidget({ entity }: { entity: Entity }) {
 function ProductionAreaHeader({ entity }: { entity: Entity }) {
     return (
         <div className="w-full h-full flex gap-8 text-[#524DC9] items-end">
-            <div className="cursor-pointer uppercase tracking-wide shadow-lg px-4 py-6 text-6xl backdrop-blur-lg">
+            <div className="cursor-pointer uppercase tracking-wide shadow-lg px-4 py-6 text-6xl backdrop-blur-lg text-shadow-black text-shadow-xs rounded-t-4xl bg-black/20 border-4 border-b-0">
                 Production Area <b>{entity.name}</b>
             </div>
         </div>

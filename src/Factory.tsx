@@ -1,35 +1,76 @@
 import { Entity } from "@3dverse/livelink";
+
 import { useEntities } from "@3dverse/livelink-react";
-import { useEffect, useState } from "react";
+
+import { FactoryWidget } from "./widgets/FactoryWidget";
 import { ProductionAreaWidget } from "./widgets/ProductionAreaWidget";
 import { ProductionLineWidget } from "./widgets/ProductionLineWidget";
 import { ProductionCellWidget } from "./widgets/ProductionCellWidget";
 import { MachineWidget } from "./widgets/MachineWidget";
-import { FactoryWidget } from "./widgets/FactoryWidget";
+
+//------------------------------------------------------------------------------
+function sortEntities({ entities }: { entities: Entity[] }) {
+    const factories = [];
+    const areas = [];
+    const lines = [];
+    const cells = [];
+    const machines = [];
+
+    for (const e of entities) {
+        const name = e.name.toLowerCase();
+        const parts = name.split(":");
+        if (parts.length != 2) continue;
+        const [type] = parts;
+
+        switch (type) {
+            case "factory":
+                factories.push(e);
+                break;
+            case "area":
+                areas.push(e);
+                break;
+            case "line":
+                lines.push(e);
+                break;
+            case "cell":
+                cells.push(e);
+                break;
+            case "machine":
+                machines.push(e);
+                break;
+        }
+    }
+
+    return { factories, areas, lines, cells, machines };
+}
 
 //------------------------------------------------------------------------------
 export function FactoryBuilder() {
     const { entities } = useEntities({ mandatory_components: ["scene_ref"] });
 
-    const [factories, setFactories] = useState<Entity[]>([]);
-
-    useEffect(() => {
-        setFactories(
-            entities
-                .filter((e) => e.name.toLowerCase().startsWith("factory:"))
-                .sort((a, b) => a.name.localeCompare(b.name)),
-        );
-    }, [entities]);
+    const { factories, areas, lines, cells, machines } = sortEntities({ entities });
 
     return (
         <>
-            {factories.map((factory) => (
-                <Factory key={factory.euid.value} entity={factory} />
+            {factories.map((factory, i) => (
+                <FactoryWidget key={factory.euid.value + i} entity={factory} />
+            ))}
+            {areas.map((area, i) => (
+                <ProductionAreaWidget key={area.euid.value + i} entity={area} />
+            ))}
+            {lines.map((line, i) => (
+                <ProductionLineWidget key={line.euid.value + i} entity={line} />
+            ))}
+            {cells.map((cell, i) => (
+                <ProductionCellWidget key={cell.euid.value + i} entity={cell} />
+            ))}
+            {machines.map((machine, i) => (
+                <MachineWidget key={machine.euid.value + i} entity={machine} />
             ))}
         </>
     );
 }
-
+/*
 //------------------------------------------------------------------------------
 function Factory({ entity }: { entity: Entity }) {
     const { entities } = useEntities({ mandatory_components: ["scene_ref"] });
@@ -130,3 +171,4 @@ function ProductionCell({ entity }: { entity: Entity }) {
         </>
     );
 }
+*/

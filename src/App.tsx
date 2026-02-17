@@ -71,7 +71,7 @@ function AppLayout() {
         cameraController.setLookAt(...position, ...target, true);
     }, []);
 
-    const showMinimap = false;
+    const showMinimap = true;
 
     return (
         <>
@@ -107,20 +107,26 @@ function Minimap() {
 
     const [pickedEntity, setPickedEntity] = useState<{ entity: Entity } | null>(null);
 
+    const { setSelectedElement } = useSelection();
+
     useEffect(() => {
         if (pickedEntity) {
-            console.log(
-                "Picked entity:",
-                pickedEntity.entity.name,
-                pickedEntity.entity.parent?.name,
-                pickedEntity.entity.parent?.parent?.name,
-                pickedEntity.entity.parent?.parent?.parent?.name,
-            );
+            const lineage = [];
+            let current: Entity | null = pickedEntity.entity;
+            while (current) {
+                if (current.scene_ref && current.name.includes(":")) {
+                    lineage.push(current.name);
+                }
+                current = current.parent;
+            }
+            const element = lineage[0].split(":")[0];
+            console.log("Picked entity element:", element);
+            setSelectedElement(element);
         }
-    }, [pickedEntity]);
+    }, [pickedEntity, setSelectedElement]);
 
     return (
-        <div className="md:hidden">
+        <div className="">
             <Canvas className="absolute right-3 bottom-3 w-64 h-64 border-4 border-[#524DC9] rounded-lg">
                 <Viewport
                     cameraEntity={cameraEntity}
@@ -136,23 +142,42 @@ function Minimap() {
 function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
     const { entities } = useEntities({ mandatory_components: ["label"] }, ["label"]);
 
+    const { entities: anims } = useEntities({ euid: "50d4ddf0-2b24-42a7-8415-f2ee8f959a4f" });
+
+    let anim: Entity | null = null;
+    console.log("render");
+
+    for (const a of anims) {
+        a!.animation_sequence_controller!.seekOffset = Math.random();
+        if (a.parent?.name === "machine:m2") {
+            if (a.parent.parent?.name === "cell:c2") {
+                if (a.parent.parent.parent?.name === "line:l1") {
+                    if (a.parent.parent.parent.parent?.name === "area:a6") {
+                        anim = a;
+                        break;
+                    }
+                }
+            }
+        }
+    }
+
     const { selectedElement, setSelectedElement, debug, setDebug } = useSelection();
     const breadcrumb = useMemo(() => {
         const current: string[] = [];
         switch (selectedElement) {
-            case "Machine":
+            case "machine":
                 current.push("machine");
             // eslint-disable-next-line no-fallthrough
-            case "Cell":
+            case "cell":
                 current.push("cell");
             // eslint-disable-next-line no-fallthrough
-            case "Line":
+            case "line":
                 current.push("line");
             // eslint-disable-next-line no-fallthrough
-            case "Area":
+            case "area":
                 current.push("area");
             // eslint-disable-next-line no-fallthrough
-            case "Factory":
+            case "factory":
                 current.push("factory");
         }
         return current.reverse();
@@ -160,8 +185,17 @@ function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
 
     useEffect(() => {
         if (entities.length === 0) return;
-        moveCamera(entities.find((e) => e.name === selectedElement) ?? entities[0]);
-    }, [selectedElement, entities, moveCamera]);
+        moveCamera(entities.find((e) => e.name.toLowerCase() === selectedElement) ?? entities[0]);
+
+        if (anim && anim.animation_sequence_controller) {
+            anim.animation_sequence_controller.seekOffset = 0;
+            anim.animation_sequence_controller.playState = selectedElement === "machine" ? 1 : 0;
+        }
+
+        for (const a of anims) {
+            a!.animation_sequence_controller!.playState = 1;
+        }
+    }, [selectedElement, entities, moveCamera, anim]);
 
     const v = {
         Factory: 0,
@@ -173,7 +207,7 @@ function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
 
     return (
         <>
-            <div className="absolute left-0 top-0 flex gap-4 p-2">
+            <div className="absolute left-0 top-0 flex gap-4 p-4 bg-[#524DC9]/70 backdrop-blur-lg rounded-br-xl drop-shadow-lg border-b-2 border-r-2 border-[#524DC9]">
                 <input
                     type="checkbox"
                     id="debug"
@@ -197,16 +231,30 @@ function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
                             key={entity.euid.value}
                             onClick={(e) => {
                                 e.stopPropagation();
-                                setSelectedElement(entity.name);
+                                setSelectedElement(entity.name.toLowerCase());
                             }}
                         >
                             {entity.name}
                         </button>
                     ))}
-                <ul className="flex flex-row gap-2 p-2">
+                <ul className="flex flex-row gap-2 p-2 text-white">
                     {breadcrumb.map((crumb, index) => (
                         <li key={index}>
-                            {crumb} {index < breadcrumb.length - 1 ? " > " : ""}
+                            {index === breadcrumb.length - 1 ? (
+                                <b>{crumb}</b>
+                            ) : (
+                                <a
+                                    href="#"
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        setSelectedElement(crumb);
+                                    }}
+                                    className="hover:text-yellow-300 underline"
+                                >
+                                    {crumb}
+                                </a>
+                            )}
+                            {index < breadcrumb.length - 1 ? " > " : ""}
                         </li>
                     ))}
                 </ul>

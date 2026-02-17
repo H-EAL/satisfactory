@@ -1,16 +1,20 @@
 import type { Entity } from "@3dverse/livelink";
-import { useEffect, useState } from "react";
 import { Gauge } from "../components/Gauge";
 import { QuadLayout } from "../components/QuadLayout";
 import { useSelection } from "../contexts/SelectionContext";
 
-export function FactoryWidget({ entity }: { entity: Entity }) {
+export function FactoryWidget({
+    entity,
+    enableHover = false,
+}: {
+    entity: Entity;
+    enableHover?: boolean;
+}) {
     const { selectedElement, debug } = useSelection();
 
-    const [displayInfo, setDisplayInfo] = useState(false);
-    useEffect(() => {
-        setDisplayInfo(selectedElement === "Factory" && entity.name === "factory:f1");
-    }, [selectedElement, entity]);
+    const displayInfo = selectedElement === "factory" && entity.name === "factory:f1";
+
+    if (!enableHover && !displayInfo) return null;
 
     return (
         <div className="pointer-events-auto">
@@ -34,10 +38,9 @@ export function FactoryWidget({ entity }: { entity: Entity }) {
                     entity={entity}
                     face="back"
                     invert
-                    scale={10}
+                    scale={20}
                     debug={debug}
                     center={<FactoryHeader entity={entity} />}
-                    //center={<FactoryGauges />}
                 />
             )}
 
@@ -45,7 +48,7 @@ export function FactoryWidget({ entity }: { entity: Entity }) {
                 <QuadLayout
                     entity={entity}
                     face="front"
-                    scale={10}
+                    scale={20}
                     debug={debug}
                     center={<FactoryGauges />}
                     bottom={<FactoryInfoPanel />}
@@ -67,7 +70,7 @@ function FactoryHeader({ entity }: { entity: Entity }) {
 
 function FactoryGauges() {
     return (
-        <div className="h-full flex justify-between px-8 py-2 backdrop-blur-xs gap-8">
+        <div className="h-full bg-black/30 flex justify-between px-8 py-2 backdrop-blur-sm gap-8">
             <div className="self-center text-md">ABC</div>
             <Gauge value={93} label="ABC" size={80} />
             <div className="self-center text-md">OEE</div>
