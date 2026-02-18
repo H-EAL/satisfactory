@@ -62,7 +62,8 @@ function AppLayout() {
         const position = labelComponent.camera.slice(0, 3) as Vec3;
         const orientation = labelComponent.camera.slice(3, 7) as Quat;
 
-        const distance = cameraController.getTargetDistance();
+        //const distance = cameraController.getTargetDistance();
+        const distance = cameraController.distance;
         const forward = applyQuaternionToVector3(neutralForward, orientation);
         const scaledForward = forward.map((v) => v * distance) as Vec3;
         const target = addVec3(position, scaledForward);
@@ -145,7 +146,6 @@ function Labels({ moveCamera }: { moveCamera: (entity: Entity) => void }) {
     const { entities: anims } = useEntities({ euid: "50d4ddf0-2b24-42a7-8415-f2ee8f959a4f" });
 
     let anim: Entity | null = null;
-    console.log("render");
 
     for (const a of anims) {
         a!.animation_sequence_controller!.seekOffset = Math.random();
